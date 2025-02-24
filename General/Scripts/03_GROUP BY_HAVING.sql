@@ -21,38 +21,79 @@
 
 
 -- EMPLOYEE 테이블에서 부서코드, 부서(그룹) 별 급여 합계 조회
+/*3*/ SELECT DEPT_CODE, SUM(SALARY)
+/*1*/ FROM EMPLOYEE
+/*2*/ GROUP BY DEPT_CODE;
+
+-- 1) EMPLOYEE 테이블에서 (23행)
+-- 2) DEPT_CODE가 같은 행을 그룹으로 만들어라
+-- 3) 묶은 그룹의 DEPT_CODE와
+--    각 그룹에 속한 인원의 급여 합을 조회
+
 
 
 
 -- EMPLOYEE 테이블에서 
--- 부서코드, 부서 별 급여의 합계, 부서 별 급여의 평균(정수처리), 인원 수를 조회하고 
+-- 부서코드, 부서 별 급여의 합계, 
+-- 부서 별 급여의 평균(정수처리), 인원 수를 조회하고 
 -- 부서 코드 순으로 정렬
-
-
+SELECT 
+	DEPT_CODE, 
+	SUM(SALARY) AS "급여 합", 
+	FLOOR(AVG(SALARY)) AS "평균",
+	COUNT(*) AS "인원 수"
+FROM EMPLOYEE
+GROUP BY DEPT_CODE
+ORDER BY DEPT_CODE ASC;
 
 -- EMPLOYEE 테이블에서 
 -- 부서코드와 부서별 보너스를 받는 사원의 수를 조회하고 
 -- 부서코드 순으로 정렬
-
-
+SELECT 
+	DEPT_CODE,
+	COUNT(BONUS) AS "보너스 받는 사원 수"
+	-- COUNT(컬럼명) : 컬럼 값이 NULL인 행 제외하고 카운트
+FROM EMPLOYEE 
+GROUP BY DEPT_CODE
+ORDER BY DEPT_CODE ASC;
 
 -- EMPLOYEE 테이블에서
 -- 성별과 성별 별 급여 평균(정수처리), 급여 합계, 인원 수 조회하고
 -- 인원수로 내림차순 정렬
-
-
+SELECT 
+	DECODE(
+		SUBSTR(EMP_NO,8,1), 
+		'1', '남자', 
+		'2', '여자' 
+	) AS 성별,
+	FLOOR(AVG(SALARY)) AS "급여 평균",
+	SUM(SALARY) AS "급여 합",
+	COUNT(*) AS "인원 수" 
+FROM EMPLOYEE 
+GROUP BY 
+	DECODE(SUBSTR(EMP_NO,8,1), '1', '남자', '2', '여자')
+ORDER BY
+	"인원 수" DESC;
 
 -- * WHERE절 GROUP BY절을 혼합하여 사용
 --> WHERE절은 각 컬럼 값에 대한 조건 (SELECT문 해석 순서를 잘 기억하는 것이 중요!!)
 
 
 -- EMPLOYEE 테이블에서 부서코드가 'D5', 'D6'인 부서의 평균 급여 조회
-
+SELECT 
+	DEPT_CODE, 
+	FLOOR(AVG(SALARY)) "평균 급여" -- (4) 그룹 별 평균 조회
+FROM EMPLOYEE -- (1) EMPLOYEE 테이블 선택
+WHERE DEPT_CODE IN('D5', 'D6') -- (2) 사용할 행 선택 (9행)
+GROUP BY DEPT_CODE; -- (3) 선택된 9개의 행에서 DEPT_CODE로 그룹 나눔
 
 -- EMPLOYEE 테이블에서 직급 별 2010년도 이후 입사자들의 급여 합을 조회
-
-
-
+-- 직급 별 2010년도 이후 입사자들의 급여 합을 조회
+SELECT 
+	JOB_CODE, SUM(SALARY) AS "급여 합" 
+FROM EMPLOYEE 
+WHERE EXTRACT(YEAR FROM HIRE_DATE) >= 2010 -- 17행 조회 
+GROUP BY JOB_CODE;
 
 -- * 여러 컬럼을 묶어서 그룹으로 지정 가능
 -- *** GROUP BY 사용시 주의사항
@@ -61,51 +102,112 @@
 --  그룹함수가 적용되지 않은 컬럼을 
 --  모두 GROUP BY절에 작성해야함.
 
--- EMPLOYEE 테이블에서 부서 별로 같은 직급인 사원의 급여 합계를 조회하고
+-- EMPLOYEE 테이블에서 
+-- 부서 별로 같은 직급인 사원의 급여 합계를 조회하고
 -- 부서 코드 오름차순으로 정렬
-
-
--- EMPLOYEE 테이블에서 부서 별로 급여 등급이 같은 직원의 수를 조회하고
+SELECT 
+	DEPT_CODE, JOB_CODE, SUM(SALARY) 
+FROM EMPLOYEE 
+GROUP BY 
+	DEPT_CODE, JOB_CODE --1) 부서 그룹 2) 부서내 직급 그룹
+ORDER BY DEPT_CODE ASC;
+	
+-- EMPLOYEE 테이블에서 
+-- 부서 별로 급여 등급이 같은 직원의 수를 조회하고
 -- 부서코드, 급여 등급 오름차순으로 정렬
-
-
-
-
-
+SELECT 
+	DEPT_CODE, SAL_LEVEL, COUNT(*) 
+FROM EMPLOYEE
+GROUP BY 
+	DEPT_CODE, SAL_LEVEL
+ORDER BY 
+	DEPT_CODE ASC, SAL_LEVEL ASC;
 --------------------------------------------------------------------------------------------------------------------------
 
--- * HAVING 절 : 그룹함수로 구해 올 그룹에 대한 조건을 설정할 때 사용
--- HAVING 컬럼명 | 함수식 비교연산자 비교값
+/* WHERE 절
+ * - FROM절에서 지정된 테이블의 전체 행 중
+ *   조건에 맞는 행만 선택 
+ * */
 
--- 부서별 평균가 급여 3000000원 이상인 부서를 조회하여 부서코드 오름차순으로 정렬
+-- * HAVING 절 : 
+-- 그룹함수로 구해 올 그룹에 대한 조건을 설정할 때 사용
+/* 
+ * GROUP BY를 통해서 만들어진 그룹 중
+ * 조건에 맞는 그룹만 선택
+ * */
+
+-- HAVING 컬럼명 | 그룹함수식 비교연산자 비교값
+
+-- 부서별 평균 급여 3500000원 이상인 부서를 조회하여 
+-- 부서코드 오름차순으로 정렬
+
+/* 1) WHERE절에 조건 설정 */
+SELECT 
+	DEPT_CODE, FLOOR(AVG(SALARY)) 
+FROM EMPLOYEE 
+WHERE SALARY >= 3500000
+GROUP BY DEPT_CODE
+ORDER BY DEPT_CODE ASC;
+--> 개인 급여가 350만 이상인 사람들만 모아서
+--  부서별로 그룹을 나누고 평균을 구함 -> 요구사항과 다름!
+
+/* 2) HAVING절에 조건 설정 */
+SELECT 
+	DEPT_CODE, FLOOR(AVG(SALARY)) 
+FROM EMPLOYEE 
+GROUP BY DEPT_CODE
+HAVING AVG(SALARY) >= 3500000 
+ORDER BY DEPT_CODE ASC;
+-- 나눠진 부서 그룹별로 급여 평균을 구했을 때
+-- 급여 평균이 350만 이상인 부서만 조회
 
 
 
--- 부서별 그룹의 급여 합계 중 9백만원을 초과하는 부서코드와 급여 합계 조회
+-- 부서별 그룹의 급여 합계 중 
+-- 천만원을 초과하는 부서코드와 급여 합계 조회
 -- 부서 코드 순으로 정렬
-
-
-
-
-                      
+SELECT DEPT_CODE, SUM(SALARY) 
+FROM EMPLOYEE 
+GROUP BY DEPT_CODE 
+HAVING SUM(SALARY) >= 10000000 
+ORDER BY DEPT_CODE ASC;
 ------ 연습 문제 ------
 
 -- 1. EMPLOYEE 테이블에서 각 부서별 가장 높은 급여, 가장 낮은 급여를 조회하여
 -- 부서 코드 오름차순으로 정렬하세요.
-
-
+SELECT DEPT_CODE, MAX(SALARY), MIN(SALARY) 
+FROM EMPLOYEE 
+GROUP BY DEPT_CODE 
+ORDER BY DEPT_CODE ASC;
 
 -- 2.EMPLOYEE 테이블에서 각 직급별 보너스를 받는 사원의 수를 조회하여
 -- 직급코드 오름차순으로 정렬하세요
+SELECT JOB_CODE, COUNT(BONUS)  
+FROM EMPLOYEE 
+GROUP BY JOB_CODE 
+ORDER BY JOB_CODE ASC;
+--> 전체를 일단 그룹으로 만들어서
+-- 	BONUS 받는 사람들을 카운트 하는 것이
+-- 	0이라는 결과가 조회되기 때문에
+-- 	통계 자료 측면에 더 좋다!!!!
 
 
+-- WHERE절에 BONUS IS NOT NULL 사용 시
+SELECT JOB_CODE, COUNT(*)  
+FROM EMPLOYEE 
+WHERE BONUS IS NOT NULL
+GROUP BY JOB_CODE 
+ORDER BY JOB_CODE ASC;
 
 -- 3.EMPLOYEE 테이블에서 
 -- 부서별 80년대생의 급여 평균이 400만 이상인 부서를 조회하여
 -- 부서 코드 오름차순으로 정렬하세요
-               
-                      
-                      
+SELECT DEPT_CODE, FLOOR(AVG(SALARY)) "급여 평균" 
+FROM EMPLOYEE
+WHERE SUBSTR(EMP_NO,1,1) = '8' 
+GROUP BY DEPT_CODE
+HAVING AVG(SALARY) >= 4000000 
+ORDER BY DEPT_CODE ASC;
 --------------------------------------------------------------------------------------------------------------                     
 
 -- 집계함수(ROLLUP, CUBE)
@@ -171,21 +273,69 @@ WHERE DEPT_CODE IS NULL;
 -- UNION : 여러개의 쿼리 결과를 하나로 합치는 연산자
 -- 중복된 영역을 제외하여 하나로 합친다.
 
+-- 부서코드가 'D5'인 사원의 이름, 부서코드, 직급코드 조회
+SELECT EMP_NAME, DEPT_CODE, JOB_CODE 
+FROM EMPLOYEE 
+WHERE DEPT_CODE = 'D5' -- 6
+
+UNION -- 합집합 (중복되는 행 한 번만 출력)
+
+-- 직급 코드가 'J7'인 사원의 이름, 부서코드, 직급코드 조회
+SELECT EMP_NAME, DEPT_CODE, JOB_CODE 
+FROM EMPLOYEE 
+WHERE JOB_CODE = 'J7'; -- 4
+
+
+-- 합집합의 결과는 OR 연산과 같다
+SELECT EMP_NAME, DEPT_CODE, JOB_CODE 
+FROM EMPLOYEE 
+WHERE JOB_CODE = 'J7' -- 4
+OR DEPT_CODE = 'D5';
 
 
 -- INTERSECT : 여러개의 SELECT한 결과에서 공통 부분만 결과로 추출 (교집합)
+SELECT EMP_NAME, DEPT_CODE, JOB_CODE 
+FROM EMPLOYEE 
+WHERE DEPT_CODE = 'D5' -- 6
 
+INTERSECT
 
+SELECT EMP_NAME, DEPT_CODE, JOB_CODE 
+FROM EMPLOYEE 
+WHERE JOB_CODE = 'J7';
 
+-- 교집합의 결과는 AND 연산과 같다
+SELECT EMP_NAME, DEPT_CODE, JOB_CODE 
+FROM EMPLOYEE 
+WHERE JOB_CODE = 'J7' -- 4
+AND DEPT_CODE = 'D5';
 
 -- UNION ALL : 여러개의 쿼리 결과를 하나로 합치는 연산자
 -- UNION과의 차이점은 중복영역을 모두 포함시킨다. (합집합 +  교집합)
 
+SELECT EMP_NAME, DEPT_CODE, JOB_CODE 
+FROM EMPLOYEE 
+WHERE DEPT_CODE = 'D5' -- 6
+
+UNION ALL
+
+SELECT EMP_NAME, DEPT_CODE, JOB_CODE 
+FROM EMPLOYEE 
+WHERE JOB_CODE = 'J7';
 
 
--- MINUS : 선행 SELECT 결과에서 다음 SELECT 결과와 겹치는 부분을 제외한 나머지 부분만 추출(차집합)
--- 부서 코드 D5 중 급여가 400만 초과인 직원 제외
+-- MINUS : 선행 SELECT 결과에서 
+-- 다음 SELECT 결과와 겹치는 부분을 제외한 나머지 부분만 추출(차집합)
 
+SELECT EMP_NAME, DEPT_CODE, JOB_CODE 
+FROM EMPLOYEE 
+WHERE DEPT_CODE = 'D5' -- 6
+
+MINUS 
+
+SELECT EMP_NAME, DEPT_CODE, JOB_CODE 
+FROM EMPLOYEE 
+WHERE JOB_CODE = 'J7';
 
 
 
